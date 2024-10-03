@@ -1,4 +1,3 @@
-# from langchain_core.utils import mustache
 from pydantic import BaseModel
 from .mustache import render
 

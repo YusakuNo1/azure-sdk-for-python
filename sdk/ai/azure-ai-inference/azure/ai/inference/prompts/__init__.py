@@ -14,21 +14,11 @@ from .renderers import MustacheRenderer
 from .parsers import RoleMap
 from .parsers import PromptyChatParser
 from .utils import load, prepare
-
-from ._patch import patch_sdk as _patch_sdk
-
-
-
-# from langchain_prompty.core import InvokerFactory
-# from langchain_prompty.langchain import create_chat_prompt
-# from langchain_prompty.parsers import PromptyChatParser
-# from langchain_prompty.renderers import MustacheRenderer
-from .renderers import MustacheRenderer
+from ._patch import patch_sdk as _patch_sdk, get_prompt_config
+from ._prompt_config import PromptConfig
 
 InvokerFactory().register_renderer("mustache", MustacheRenderer)
 InvokerFactory().register_parser("prompty.chat", PromptyChatParser)
-
-
 
 __all__ = [
     "Frontmatter",
@@ -39,6 +29,8 @@ __all__ = [
     "RoleMap",
     "load",
     "prepare",
+    "get_prompt_config",
+    "PromptConfig",
 ]
 
 _patch_sdk()
