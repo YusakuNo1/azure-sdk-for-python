@@ -1,5 +1,6 @@
-from langchain_core.utils import mustache
+# from langchain_core.utils import mustache
 from pydantic import BaseModel
+from .mustache import render
 
 from .core import Invoker, Prompty, SimpleModel
 
@@ -12,5 +13,6 @@ class MustacheRenderer(Invoker):
 
     def invoke(self, data: BaseModel) -> BaseModel:
         assert isinstance(data, SimpleModel)
-        generated = mustache.render(self.prompty.content, data.item)
+        # generated = mustache.render(self.prompty.content, data.item)
+        generated = render(self.prompty.content, data.item)
         return SimpleModel[str](item=generated)
