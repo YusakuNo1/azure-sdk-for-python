@@ -32,12 +32,12 @@ def sample_chat_completions_from_input_prompty():
     path = "./sample1.prompty"
     prompt_config = PromptyTemplate.load(file_path=path)
 
-    inputs = {
+    input_variables = {
         # "input": "my first question",
         "input": "please tell me a joke about cats",
     }
 
-    messages = prompt_config.render(inputs)
+    messages = prompt_config.render(input_variables=input_variables)
 
     client = ChatCompletionsClient(
         endpoint=endpoint,
