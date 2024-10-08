@@ -14,7 +14,7 @@ from .renderers import MustacheRenderer
 from .parsers import RoleMap
 from .parsers import PromptyChatParser
 from .utils import load, prepare
-from ._patch import patch_sdk as _patch_sdk, get_prompt_config
+from ._patch import patch_sdk as _patch_sdk, PromptyTemplate    # , get_prompt_config
 from ._prompt_config import PromptConfig
 
 InvokerFactory().register_renderer("mustache", MustacheRenderer)
@@ -31,6 +31,7 @@ __all__ = [
     "prepare",
     "get_prompt_config",
     "PromptConfig",
+    "PromptyTemplate",
 ]
 
 _patch_sdk()

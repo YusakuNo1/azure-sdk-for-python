@@ -35,12 +35,18 @@ def sample_chat_completions_from_input_json():
     try:
         endpoint = os.environ["AZURE_AI_CHAT_ENDPOINT"]
         key = os.environ["AZURE_AI_CHAT_KEY"]
+        version = os.environ["AZURE_AI_CHAT_VERSION"]
     except KeyError:
-        print("Missing environment variable 'AZURE_AI_CHAT_ENDPOINT' or 'AZURE_AI_CHAT_KEY'")
+        print("Missing environment variable 'AZURE_AI_CHAT_ENDPOINT', 'AZURE_AI_CHAT_KEY' or 'AZURE_AI_CHAT_VERSION'")
         print("Set them before running this sample.")
         exit()
 
-    client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+    client = ChatCompletionsClient(
+        endpoint=endpoint,
+        credential=AzureKeyCredential(key),
+        headers={"api-key": key},
+        api_version=version,
+    )
 
     # [START chat_completions]
     response = client.complete(

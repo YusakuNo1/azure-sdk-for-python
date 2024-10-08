@@ -24,12 +24,8 @@ class RoleMap:
 class PromptConfig:
     def __init__(self, prompty: Prompty) -> None:
         self.prompty = prompty
+        self.model_name = "gpt-4o-mini"     # TODO: This should come from prompty
 
-    def get_config():
-        return {
-            "model_name": "mock_model_name"
-        }
-    
     def render(self, input_variables: dict[str, any], message_format: str | None = None) -> list[ChatRequestMessage]:
         if message_format == None:
             parsed = prepare(self.prompty, input_variables)
@@ -39,6 +35,10 @@ class PromptConfig:
                 message_class = RoleMap.get_message_class(message["role"])
                 messages.append(message_class(content=message["content"]))
             return messages
+        
+        elif message_format == "openai":
+            # Output the JSON format for OpenAI
+            pass
 
         else:
             return  prepare(self.prompty, input_variables)
