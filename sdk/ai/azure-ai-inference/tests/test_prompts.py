@@ -32,6 +32,21 @@ class TestPrompts(AzureRecordedTestCase):
         assert messages[1]["role"] == "user"
         assert messages[1]["content"] == "please tell me a joke about cats"
 
+    def test_prompt_template_from_prompty_without_frontmatter(self, **kwargs):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        prompty_file_path = os.path.join(script_dir, "sample1_no_frontmatter.prompty")
+        prompt_template = PromptTemplate.from_prompty(prompty_file_path)
+        assert prompt_template.model_name == None
+        assert prompt_template.config == {}
+        input_variables = {
+            "input": "please tell me a joke about cats",
+        }
+        messages = prompt_template.render(input_variables=input_variables)
+        assert len(messages) == 2
+        assert messages[0]["role"] == "system"
+        assert messages[1]["role"] == "user"
+        assert messages[1]["content"] == "please tell me a joke about cats"
+
     def test_prompt_template_from_message(self, **kwargs):
         prompt_template = PromptTemplate.from_message(
             api = "chat",

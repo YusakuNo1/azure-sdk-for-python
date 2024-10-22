@@ -118,6 +118,9 @@ class Prompty(BaseModel):
 
     @staticmethod
     def normalize(attribute: Any, parent: Path, env_error: bool = True) -> Any:
+        if attribute is None:
+            return ""
+
         if isinstance(attribute, str):
             attribute = attribute.strip()
             if attribute.startswith("${") and attribute.endswith("}"):
@@ -316,18 +319,22 @@ class Frontmatter:
 
         Returned dict keys:
         attributes -- extracted YAML attributes in dict form.
-        body -- string contents below the YAML separators
+        body -- string contents below the YAML separators, if no separators, then the entire string.
         frontmatter -- string representation of YAML
         """
-        fmatter = ""
-        body = ""
+        fmatter = None
+        body = None
         result = cls._regex.search(string)
 
         if result:
             fmatter = result.group(1)
             body = result.group(2)
+        else:
+            # frontmatter is optional
+            body = string
+
         return {
-            "attributes": yaml.load(fmatter, Loader=yaml.FullLoader),
+            "attributes": yaml.load(fmatter, Loader=yaml.FullLoader) if fmatter else {},
             "body": body,
             "frontmatter": fmatter,
         }
