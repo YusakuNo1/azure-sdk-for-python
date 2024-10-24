@@ -7,6 +7,7 @@
 Follow our quickstart for examples: https://aka.ms/azsdk/python/dpcodegen/python/customize
 """
 
+from typing import Any, Dict
 import azure.ai.inference.prompts as prompts
 from .core import Prompty
 from .utils import prepare
@@ -37,21 +38,21 @@ class PromptTemplate:
     def from_message(
         prompt_template: str,
         api: str = "chat",
-        model_name: str | None = None
+        model_name: str | None = None # type: ignore
     ):
         return PromptTemplate(api=api, prompt_template=prompt_template, model_name=model_name, prompty=None)
 
     def __init__(
             self,
-            prompty: Prompty | None = None,
-            api: str | None = None,
-            prompt_template: str | None = None,
-            model_name: str | None = None,
+            prompty: Prompty | None = None, # type: ignore
+            api: str | None = None, # type: ignore
+            prompt_template: str | None = None, # type: ignore
+            model_name: str | None = None, # type: ignore
     ) -> None:
         self.prompty = prompty
         if self.prompty is not None:
-            self.model_name = prompty.model.configuration["azure_deployment"] if "azure_deployment" in prompty.model.configuration else None
-            self.parameters = prompty.model.parameters
+            self.model_name = self.prompty.model.configuration["azure_deployment"] if "azure_deployment" in self.prompty.model.configuration else None
+            self.parameters = self.prompty.model.parameters
             self._parameters = {}
         elif prompt_template is not None:
             self.model_name = model_name
@@ -64,16 +65,18 @@ class PromptTemplate:
         else:
             raise ValueError("Please invalid arguments for PromptConfig")
 
-    def render(self, data: dict[str, any] | None = None, **kwargs):
+    def render(self, data: Dict[str, Any] | None = None, **kwargs): # type: ignore
         if data is None:
             data = kwargs
 
         if self.prompty is not None:
-            parsed = prepare(self.prompty, data)
+            parsed: dict[str, Any] = prepare(self.prompty, data)
             return parsed
         elif "prompt_template" in self._parameters:
             system_prompt = render(self._parameters["prompt_template"], data)
             return [{"role": "system", "content": system_prompt}]
+        else:
+            raise ValueError("Please provide valid prompt template")
 
 
 def patch_sdk():

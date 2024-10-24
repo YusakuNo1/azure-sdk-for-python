@@ -20,12 +20,13 @@ from typing import (
     cast,
 )
 
+from typing import List
 from typing_extensions import TypeAlias
 
 logger = logging.getLogger(__name__)
 
 
-Scopes: TypeAlias = list[Union[Literal[False, 0], Mapping[str, Any]]]
+Scopes: TypeAlias = List[Union[Literal[False, 0], Mapping[str, Any]]]
 
 
 # Globals
