@@ -7,7 +7,8 @@
 Follow our quickstart for examples: https://aka.ms/azsdk/python/dpcodegen/python/customize
 """
 
-from typing import Any, Dict, List, Optional, Self
+from typing import Any, Dict, List, Optional, overload, Self
+from typing_extensions import Self
 from ._core import Prompty
 from ._utils import load, prepare
 from ._mustache import render
@@ -28,7 +29,16 @@ class PromptTemplate:
         if not file_path:
             raise ValueError("Please provide file_path")
         prompty = load(file_path)
-        return cls(prompty=prompty)
+        instance = cls()
+        instance.prompty = prompty
+        instance.model_name = (
+            prompty.model.configuration["azure_deployment"]
+            if "azure_deployment" in prompty.model.configuration
+            else None
+        )
+        instance.parameters = prompty.model.parameters
+        instance._parameters = {}
+        return instance
 
     @classmethod
     def from_message(
@@ -45,39 +55,18 @@ class PromptTemplate:
         :return: The PromptTemplate object.
         :rtype: PromptTemplate
         """
-        return cls(
-            api=api,
-            prompt_template=prompt_template,
-            model_name=model_name,
-            prompty=None,
-        )
-
-    def __init__(
-        self,
-        prompty: Prompty = None,
-        prompt_template: str = None,
-        api: str = "chat",
-        model_name: Optional[str] = None,
-    ) -> None:
-        self.prompty = prompty
-        if self.prompty is not None:
-            self.model_name = (
-                prompty.model.configuration["azure_deployment"]
-                if "azure_deployment" in prompty.model.configuration
-                else None
-            )
-            self.parameters = prompty.model.parameters
-            self._parameters = {}
-        elif prompt_template is not None:
-            self.model_name = model_name
-            self.parameters = {}
-            # _parameters is a dict to hold the internal configuration
-            self._parameters = {
-                "api": api if api is not None else "chat",
-                "prompt_template": prompt_template,
-            }
-        else:
-            raise ValueError("Please invalid arguments for PromptTemplate")
+        if not prompt_template:
+            raise ValueError("Please provide prompt_template")
+        instance = cls()
+        instance.prompty = None
+        instance.model_name = model_name
+        instance.parameters = {}
+        # _parameters is a dict to hold the internal configuration
+        instance._parameters = {
+            "api": api if api is not None else "chat",
+            "prompt_template": prompt_template,
+        }
+        return instance
 
     def render(
         self, data: Optional[Dict[str, Any]] = None, **kwargs
