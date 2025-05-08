@@ -50,6 +50,9 @@ with DefaultAzureCredential(exclude_interactive_browser_credential=False) as cre
             model=model_deployment_name,
             name="my-agent",
             instructions="You are helpful agent",
+            # params={
+            #     "api-version": "latest",
+            # },
         )
         print(f"Created agent, agent ID: {agent.id}")
 
