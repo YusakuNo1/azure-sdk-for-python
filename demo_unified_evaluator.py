@@ -16,14 +16,8 @@ sys.path.insert(0, '/Users/weiwu/Workspaces/Microsoft/azure-sdk-for-python/sdk/e
 
 from azure.ai.evaluation._evaluators._unified._unified_evaluator import (
     UnifiedEvaluator,
-    EvaluatorConfig,
-    InputType,
-    create_coherence_evaluator,
-    create_fluency_evaluator,
-    create_relevance_evaluator,
-    create_similarity_evaluator,
-    create_retrieval_evaluator,
-    create_response_completeness_evaluator
+    # EvaluatorConfig,
+    InputType
 )
 
 def demonstrate_unified_evaluator():
@@ -39,64 +33,88 @@ def demonstrate_unified_evaluator():
     
     print("=== UnifiedEvaluator Demonstration ===\n")
     
-    # 1. Create evaluators using factory methods (maintains backward compatibility)
-    print("1. Creating evaluators using factory methods:")
+    # 1. Create evaluators using direct parameter initialization
+    print("1. Creating evaluators with direct parameters:")
     
     try:
-        coherence_eval = create_coherence_evaluator(mock_model_config, threshold=4)
+        coherence_eval = UnifiedEvaluator(
+            mock_model_config,
+            name="coherence",
+            prompty_file="coherence.prompty",
+            evaluator_id="azureai://built-in/evaluators/coherence",
+            threshold=4,
+            input_types=[InputType.QUERY_RESPONSE, InputType.CONVERSATION]
+        )
         print(f"   ✓ Coherence evaluator: {coherence_eval.config.name}")
-        print(f"     - Result key: {coherence_eval.config.result_key}")
+        print(f"     - Name: {coherence_eval.config.name}")
         print(f"     - Supported inputs: {[t.value for t in coherence_eval.config.input_types]}")
         
-        fluency_eval = create_fluency_evaluator(mock_model_config)
+        fluency_eval = UnifiedEvaluator(
+            mock_model_config,
+            name="fluency",
+            prompty_file="fluency.prompty",
+            evaluator_id="azureai://built-in/evaluators/fluency",
+            input_types=[InputType.RESPONSE_ONLY, InputType.CONVERSATION]
+        )
         print(f"   ✓ Fluency evaluator: {fluency_eval.config.name}")
         
-        relevance_eval = create_relevance_evaluator(mock_model_config)
+        relevance_eval = UnifiedEvaluator(
+            mock_model_config,
+            name="relevance",
+            prompty_file="relevance.prompty",
+            evaluator_id="azureai://built-in/evaluators/relevance",
+            input_types=[InputType.QUERY_RESPONSE, InputType.CONVERSATION],
+            legacy_gpt_key=True
+        )
         print(f"   ✓ Relevance evaluator: {relevance_eval.config.name}")
         print(f"     - Has legacy GPT key: {relevance_eval.config.legacy_gpt_key}")
         
-        similarity_eval = create_similarity_evaluator(mock_model_config)
+        similarity_eval = UnifiedEvaluator(
+            mock_model_config,
+            name="similarity",
+            prompty_file="similarity.prompty",
+            evaluator_id="azureai://built-in/evaluators/similarity",
+            input_types=[InputType.QUERY_RESPONSE_GROUND_TRUTH],
+            supports_conversation=False
+        )
         print(f"   ✓ Similarity evaluator: {similarity_eval.config.name}")
         print(f"     - Supports conversation: {similarity_eval.config.supports_conversation}")
         
     except Exception as e:
         print(f"   Note: Evaluator creation failed (expected without real model): {e}")
     
-    print("\n2. Creating evaluators directly with UnifiedEvaluator:")
+    print("\n2. Creating evaluators using predefined configurations:")
     
-    # 2. Create evaluators using the class methods
+    # 2. Create evaluators using the predefined configurations
     try:
-        direct_coherence = UnifiedEvaluator.create_coherence_evaluator(mock_model_config)
-        print(f"   ✓ Direct coherence evaluator created")
+        coherence_config = UnifiedEvaluator.EVALUATOR_CONFIGS["coherence"]
+        direct_coherence = UnifiedEvaluator(
+            mock_model_config,
+            name=coherence_config.name,
+            prompty_file=coherence_config.prompty_file,
+            evaluator_id=coherence_config.evaluator_id,
+            threshold=4,
+            input_types=coherence_config.input_types,
+            legacy_gpt_key=coherence_config.legacy_gpt_key
+        )
+        print(f"   ✓ Coherence evaluator from config created")
         
-        direct_fluency = UnifiedEvaluator.create_fluency_evaluator(mock_model_config)
-        print(f"   ✓ Direct fluency evaluator created")
+        fluency_config = UnifiedEvaluator.EVALUATOR_CONFIGS["fluency"]
+        direct_fluency = UnifiedEvaluator(
+            mock_model_config,
+            name=fluency_config.name,
+            prompty_file=fluency_config.prompty_file,
+            evaluator_id=fluency_config.evaluator_id,
+            input_types=fluency_config.input_types
+        )
+        print(f"   ✓ Fluency evaluator from config created")
         
     except Exception as e:
-        print(f"   Note: Direct creation failed (expected without real model): {e}")
+        print(f"   Note: Config-based creation failed (expected without real model): {e}")
     
     print("\n3. Creating custom evaluator configurations:")
     
-    # 3. Show how to create a custom evaluator
-    custom_config = EvaluatorConfig(
-        name="custom_quality",
-        prompty_file="custom_quality.prompty",
-        result_key="quality",
-        evaluator_id="custom://evaluators/quality",
-        default_threshold=4,
-        input_types=[InputType.QUERY_RESPONSE, InputType.CONVERSATION],
-        score_range=(1, 10),
-        legacy_gpt_key=False,
-        include_details=True
-    )
-    
-    print(f"   ✓ Custom config created: {custom_config.name}")
-    print(f"     - Score range: {custom_config.score_range}")
-    print(f"     - Include details: {custom_config.include_details}")
-    
-    print("\n4. Showing input type detection:")
-    
-    # 4. Demonstrate input type detection
+    # 3. Demonstrate input type detection
     test_inputs = [
         {"query": "test", "response": "test"},
         {"response": "test"},
@@ -108,7 +126,12 @@ def demonstrate_unified_evaluator():
     
     # Create a temporary evaluator instance to test input detection
     try:
-        temp_eval = UnifiedEvaluator(mock_model_config, config=custom_config)
+        temp_eval = UnifiedEvaluator(
+            mock_model_config,
+            name="test",
+            prompty_file="test.prompty",
+            evaluator_id="test://evaluator"
+        )
         
         for test_input in test_inputs:
             try:
@@ -121,21 +144,21 @@ def demonstrate_unified_evaluator():
         print(f"   Note: Input type detection test failed (expected): {e}")
     
     print("\n5. Configuration comparison:")
-    print("   Original evaluators vs Unified approach:")
-    print("   - CoherenceEvaluator      -> UnifiedEvaluator with coherence config")
-    print("   - FluencyEvaluator        -> UnifiedEvaluator with fluency config")
-    print("   - RelevanceEvaluator      -> UnifiedEvaluator with relevance config")
-    print("   - SimilarityEvaluator     -> UnifiedEvaluator with similarity config")
-    print("   - RetrievalEvaluator      -> UnifiedEvaluator with retrieval config")
-    print("   - ResponseCompletenessEvaluator -> UnifiedEvaluator with response_completeness config")
+    print("   Original approach vs Unified approach:")
+    print("   - CoherenceEvaluator      -> UnifiedEvaluator with coherence parameters")
+    print("   - FluencyEvaluator        -> UnifiedEvaluator with fluency parameters")
+    print("   - RelevanceEvaluator      -> UnifiedEvaluator with relevance parameters")
+    print("   - SimilarityEvaluator     -> UnifiedEvaluator with similarity parameters")
+    print("   - RetrievalEvaluator      -> UnifiedEvaluator with retrieval parameters")
+    print("   - ResponseCompletenessEvaluator -> UnifiedEvaluator with response_completeness parameters")
     
     print("\n6. Benefits of the unified approach:")
-    print("   ✓ Reduced code duplication")
-    print("   ✓ Consistent API across evaluators")
-    print("   ✓ Easy to add new evaluators through configuration")
-    print("   ✓ Centralized output formatting")
-    print("   ✓ Unified error handling")
-    print("   ✓ Maintains backward compatibility")
+    print("   ✓ Single class for all evaluator types")
+    print("   ✓ Direct parameter specification")
+    print("   ✓ No redundant factory methods")
+    print("   ✓ Simplified API")
+    print("   ✓ Easy to add new evaluators")
+    print("   ✓ Centralized logic and error handling")
     
     print("\n=== Demonstration Complete ===")
 

@@ -128,6 +128,101 @@ custom_config = EvaluatorConfig(
 evaluator = UnifiedEvaluator(model_config, config=custom_config)
 ```
 
+## Built-in Evaluator Configurations
+
+For reference, here are the parameter sets for common built-in evaluators when using direct parameter initialization:
+
+### Coherence Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="coherence",
+    prompty_file="coherence.prompty",
+    evaluator_id="azureai://built-in/evaluators/coherence",
+    input_types=[InputType.QUERY_RESPONSE, InputType.CONVERSATION],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    legacy_gpt_key=False
+)
+```
+
+### Fluency Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="fluency",
+    prompty_file="fluency.prompty",
+    evaluator_id="azureai://built-in/evaluators/fluency",
+    input_types=[InputType.RESPONSE_ONLY, InputType.CONVERSATION],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    legacy_gpt_key=False
+)
+```
+
+### Relevance Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="relevance",
+    prompty_file="relevance.prompty",
+    evaluator_id="azureai://built-in/evaluators/relevance",
+    input_types=[InputType.QUERY_RESPONSE, InputType.CONVERSATION],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    legacy_gpt_key=True  # Includes legacy 'gpt_relevance' key
+)
+```
+
+### Similarity Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="similarity",
+    prompty_file="similarity.prompty",
+    evaluator_id="azureai://built-in/evaluators/similarity",
+    input_types=[InputType.QUERY_RESPONSE_GROUND_TRUTH],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    supports_conversation=False,  # Does not support conversation input
+    legacy_gpt_key=False
+)
+```
+
+### Retrieval Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="retrieval",
+    prompty_file="retrieval.prompty",
+    evaluator_id="azureai://built-in/evaluators/retrieval",
+    input_types=[InputType.QUERY_RESPONSE_CONTEXT, InputType.CONVERSATION],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    legacy_gpt_key=False
+)
+```
+
+### Response Completeness Evaluator
+```python
+UnifiedEvaluator(
+    model_config,
+    name="response_completeness",
+    prompty_file="response_completeness.prompty",
+    evaluator_id="azureai://built-in/evaluators/response_completeness",
+    input_types=[InputType.GROUND_TRUTH_RESPONSE, InputType.CONVERSATION],
+    threshold=3,
+    higher_is_better=True,
+    score_range=(1, 5),
+    legacy_gpt_key=False
+)
+```
+
 ## Limitations
 
 The unified evaluator **cannot** easily replace these complex evaluators:
