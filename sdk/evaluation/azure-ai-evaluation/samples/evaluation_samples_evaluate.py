@@ -309,7 +309,7 @@ class EvaluationEvaluateSamples(object):
             query="What is the capital of Japan?",
             response="The capital of Japan is Tokyo.",
         )
-        print(f"Relevance score (case 1): {json.dumps(response1, indent=2)}")
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 1): {json.dumps(response1, indent=2)}")
 
         # Case 2: use conversation messages, it responses 2 scores, 
         response2 = relevance_eval(
@@ -322,7 +322,7 @@ class EvaluationEvaluateSamples(object):
                 ],
             },
         )
-        print(f"Relevance score (case 2): {json.dumps(response2, indent=2)}")
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 2): {json.dumps(response2, indent=2)}")
         # [END relevance_evaluator]
 
         # # [START retrieval_evaluator]
@@ -554,9 +554,9 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    print("Loading samples in evaluation_samples_evaluate.py")
+    # print("Loading samples in evaluation_samples_evaluate.py")
     sample = EvaluationEvaluateSamples()
-    print("Samples loaded successfully!")
-    print("Running samples in evaluation_samples_evaluate.py")
+    # print("Samples loaded successfully!")
+    # print("Running samples in evaluation_samples_evaluate.py")
     sample.evaluation_evaluate_classes_methods()
-    print("Samples ran successfully!")
+    # print("Samples ran successfully!")
