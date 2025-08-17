@@ -22,7 +22,6 @@ inputs:
 system:
 You are a Relevance-Judge, an impartial evaluator that scores how well the RESPONSE addresses the QUERY using the definitions provided.
 
-user:
 ROLE
 ====
 You are a Relevance Evaluator. Your task is to judge how relevant a RESPONSE is to a QUERY using the Relevance definitions provided.

@@ -304,14 +304,14 @@ class EvaluationEvaluateSamples(object):
 
         relevance_eval = RelevanceEvaluator(model_config=model_config)
 
-        # Case 1: only request and response, the score is high
+        # Case 1: only request and response, the score is 5.0
         response1 = relevance_eval(
             query="What is the capital of Japan?",
             response="The capital of Japan is Tokyo.",
         )
         print(f"\n----------------------------------------------------------------\nRelevance score (case 1): {json.dumps(response1, indent=2)}")
 
-        # Case 2: use conversation messages, it responses 2 scores, 
+        # Case 2: use conversation messages, the score is 2.5 
         response2 = relevance_eval(
             conversation={
                 "messages": [
@@ -323,6 +323,53 @@ class EvaluationEvaluateSamples(object):
             },
         )
         print(f"\n----------------------------------------------------------------\nRelevance score (case 2): {json.dumps(response2, indent=2)}")
+
+        # Case 3: combine all user queries into a single one and then evaluate the response, the score is 5.0
+        response3 = relevance_eval(
+            query="What is the capital of Japan? What is the capital there?",
+            response="The capital of Japan is Tokyo.",
+        )
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 3): {json.dumps(response3, indent=2)}")
+
+        # Case 4: use conversation messages, the score is 2.0
+        response4 = relevance_eval(
+            conversation={
+                "messages": [
+                    {"role": "user", "content": "I would like to travel to japan next week"},
+                    {"role": "assistant", "content": "Nice, have fun in japan!"},
+                    {"role": "user", "content": "What is the capital there?"},
+                    {"role": "assistant", "content": "Let me use my tools to find the answer."},
+                    {"role": "assistant", "content": "It's Tokyo."},
+                ],
+            },
+        )
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 4): {json.dumps(response4, indent=2)}")
+
+        # Case 5: use conversation messages, the score is 5.0
+        response5 = relevance_eval(
+            conversation={
+                "messages": [
+                    {"role": "user", "content": "user:\n===\nI would like to travel to japan next week\nassistant:\n===\nNice, have fun in japan!\nuser:\n===\nWhat is the capital there?"},
+                    {"role": "assistant", "content": "Let me use my tools to find the answer.\nIt's Tokyo."},
+                ],
+            },
+        )
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 5): {json.dumps(response5, indent=2)}")
+
+        # Case 6: use conversation messages, the score is 4.0
+        response6 = relevance_eval(
+            query="""===
+I would like to travel to japan next week
+===
+Nice, have fun in japan!
+===
+What is the weather in the capital city?""",
+            response="""===
+Let me use my tools to find the weather of Toyko.
+===
+The current temperature in Tokyo is 25°C. """,
+        )
+        print(f"\n----------------------------------------------------------------\nRelevance score (case 6): {json.dumps(response6, indent=2)}")
         # [END relevance_evaluator]
 
         # # [START retrieval_evaluator]
