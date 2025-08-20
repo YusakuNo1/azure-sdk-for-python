@@ -494,8 +494,6 @@ The current temperature in Tokyo is 25°C. """,
             }
         ]
 
-        response = task_adherence_evaluator(query=query, response=response, tool_definitions=tool_definitions)
-
         from azure.ai.evaluation._common.utils import reformat_conversation_history, reformat_agent_response, reformat_tool_definitions
         formatted_query = reformat_conversation_history(query, logger=None, include_system_messages=True)
         formatted_response = reformat_agent_response(response, logger=None, include_tool_messages=True)
@@ -503,6 +501,8 @@ The current temperature in Tokyo is 25°C. """,
         print(f"\n* * * Task Adherence Query: {formatted_query}")
         print(f"\n* * * Task Adherence Response: {formatted_response}")
         print(f"\n* * * Task Adherence Tool Definitions: {formatted_tool_definitions}")
+
+        response = task_adherence_evaluator(query=query, response=response, tool_definitions=tool_definitions)
 
         print(f"* * * Task Adherence: {response}")
         # [END task_adherence_evaluator]
