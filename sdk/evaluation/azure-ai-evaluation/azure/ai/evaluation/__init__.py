@@ -49,6 +49,8 @@ from ._aoai.text_similarity_grader import AzureOpenAITextSimilarityGrader
 from ._aoai.score_model_grader import AzureOpenAIScoreModelGrader
 from ._aoai.python_grader import AzureOpenAIPythonGrader
 
+from ._aoai.endpoint_grader import AzureOpenAIEndpointGrader
+
 
 _patch_all = []
 
@@ -139,6 +141,7 @@ __all__ = [
     "AzureOpenAITextSimilarityGrader",
     "AzureOpenAIScoreModelGrader",
     "AzureOpenAIPythonGrader",
+    "AzureOpenAIEndpointGrader",
 ]
 
 __all__.extend([p for p in _patch_all if p not in __all__])

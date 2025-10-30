@@ -29,12 +29,44 @@ DESCRIPTION:
 
 """
 
+import os
+
+def get_azure_ai_project():
+    """
+    Get Azure AI project configuration based on available environment variables.
+
+    Returns either:
+    1. Foundry-based project (preferred): Uses AZURE_AI_PROJECT_ENDPOINT
+    2. Hub-based project (legacy): Uses subscription_id, resource_group_name, project_name
+    """
+    # Try foundry-based project first (newer approach)
+    foundry_endpoint = os.environ.get("AZURE_AI_PROJECT_ENDPOINT")
+    if foundry_endpoint:
+        print("✅ Using foundry-based Azure AI project")
+        return foundry_endpoint
+
+    # Fall back to hub-based project (legacy approach)
+    subscription_id = os.environ.get("AZURE_SUBSCRIPTION_ID")
+    resource_group = os.environ.get("AZURE_RESOURCE_GROUP_NAME")
+    project_name = os.environ.get("AZURE_PROJECT_NAME")
+
+    if subscription_id and resource_group and project_name:
+        print("✅ Using hub-based Azure AI project (legacy)")
+        return AzureAIProject(
+            subscription_id=subscription_id,
+            resource_group_name=resource_group,
+            project_name=project_name,
+        )
+
+    print("⚠️  No Azure AI project configuration found")
+    return None
+
 
 class EvaluationEvaluateSamples(object):
     def evaluation_evaluate_classes_methods(self):
         # [START evaluate_method]
         import os
-        from azure.ai.evaluation import evaluate, RelevanceEvaluator, CoherenceEvaluator, IntentResolutionEvaluator
+        from azure.ai.evaluation import evaluate, AzureOpenAIScoreModelGrader, AzureOpenAIEndpointGrader, RelevanceEvaluator, CoherenceEvaluator, IntentResolutionEvaluator
 
         model_config = {
             "azure_endpoint": os.environ.get("AZURE_OPENAI_ENDPOINT"),  # https://<account_name>.services.ai.azure.com
@@ -42,15 +74,61 @@ class EvaluationEvaluateSamples(object):
             "azure_deployment": os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
         }
 
-        print(os.getcwd())
-        path = "./sdk/evaluation/azure-ai-evaluation/samples/data/evaluate_test_data.jsonl"
+        azure_ai_project = get_azure_ai_project()
+        if not azure_ai_project:
+            print("❌ No Azure AI project configuration found. Please set either:")
+            print("   - AZURE_AI_PROJECT_ENDPOINT (for foundry-based projects), or")
+            print("   - AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP_NAME, AZURE_PROJECT_NAME (for hub-based projects)")
+            return
+        
+        conversation_quality_grader = AzureOpenAIScoreModelGrader(
+            model_config=model_config,
+            name="Conversation Quality Assessment",
+            model="gpt-4o-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert conversation quality evaluator. "
+                        "Assess the quality of AI assistant responses based on "
+                        "helpfulness, completeness, accuracy, and "
+                        "appropriateness. Return a score between 0.0 (very "
+                        "poor) and 1.0 (excellent)."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "Evaluate this conversation:\n"
+                        "Context: {{ item.context }}\n"
+                        "Messages: {{ item.conversation }}\n\n"
+                        "Provide a quality score from 0.0 to 1.0."
+                    ),
+                },
+            ],
+            range=[0.0, 1.0],
+            sampling_params={"temperature": 0.0},
+        )
 
+        endpoint_grader = AzureOpenAIEndpointGrader(
+            model_config=model_config,
+            name="Conversation Quality Assessment",
+            url="https://my-custom-endpoint.com/evaluate",
+        )
+
+        print(os.getcwd())
+        path = "/Users/weiwu/Workspaces/Microsoft/azure-sdk-for-python/sdk/evaluation/azure-ai-evaluation/samples/data/evaluate_test_data.jsonl"
+        sample_conversations_path = "/Users/weiwu/Workspaces/Microsoft/azure-sdk-for-python/sdk/evaluation/azure-ai-evaluation/samples/sample_conversations.jsonl"
         evaluate(
-            data=path,
+            # data=path,
+            data=sample_conversations_path,
+            azure_ai_project=azure_ai_project,
             evaluators={
-                "coherence": CoherenceEvaluator(model_config=model_config),
-                "relevance": RelevanceEvaluator(model_config=model_config),
-                "intent_resolution": IntentResolutionEvaluator(model_config=model_config),
+                # "coherence": CoherenceEvaluator(model_config=model_config),
+                # "relevance": RelevanceEvaluator(model_config=model_config),
+                # "intent_resolution": IntentResolutionEvaluator(model_config=model_config),
+                # "conversation_quality_grader": conversation_quality_grader,
+                "endpoint_grader": endpoint_grader,
             },
             evaluator_config={
                 "coherence": {
