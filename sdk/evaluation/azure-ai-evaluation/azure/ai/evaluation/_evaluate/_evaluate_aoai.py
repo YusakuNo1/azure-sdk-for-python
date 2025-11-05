@@ -79,6 +79,7 @@ def _begin_aoai_evaluation(
     column_mappings: Optional[Dict[str, Dict[str, str]]],
     data: pd.DataFrame,
     run_name: str,
+    **kwargs: Any,
 ) -> List[OAIEvalRunCreationInfo]:
     """
     Use the AOAI SDK to start an evaluation of the inputted dataset against the supplied graders.
@@ -114,7 +115,7 @@ def _begin_aoai_evaluation(
             f"AOAI: Starting evaluation run {idx + 1}/{len(grader_mapping_list)} with {len(selected_graders)} grader(s)..."
         )
         all_eval_run_info.append(
-            _begin_single_aoai_evaluation(selected_graders, data, selected_column_mapping, run_name)
+            _begin_single_aoai_evaluation(selected_graders, data, selected_column_mapping, run_name, **kwargs)
         )
 
     LOGGER.info(f"AOAI: Successfully created {len(all_eval_run_info)} evaluation run(s).")
@@ -122,7 +123,7 @@ def _begin_aoai_evaluation(
 
 
 def _begin_single_aoai_evaluation(
-    graders: Dict[str, AzureOpenAIGrader], data: pd.DataFrame, column_mapping: Optional[Dict[str, str]], run_name: str
+    graders: Dict[str, AzureOpenAIGrader], data: pd.DataFrame, column_mapping: Optional[Dict[str, str]], run_name: str, **kwargs: Any
 ) -> OAIEvalRunCreationInfo:
     """
     Use the AOAI SDK to start an evaluation of the inputted dataset against the supplied graders.
@@ -146,6 +147,16 @@ def _begin_single_aoai_evaluation(
     LOGGER.info(f"AOAI: Preparing evaluation for {len(graders)} grader(s): {list(graders.keys())}")
     grader_name_list = []
     grader_list = []
+    
+    data_source = {}
+    data_source_config = {}
+    
+    if kwargs.get("data_source_config") is not None:
+        data_source_config = kwargs.get("data_source_config")
+        
+    if kwargs.get("data_source") is not None:
+        data_source = kwargs.get("data_source")
+
     # It's expected that all graders supplied for a single eval run use the same credentials
     # so grab a client from the first grader.
     client = list(graders.values())[0].get_client()
@@ -155,13 +166,76 @@ def _begin_single_aoai_evaluation(
         grader_list.append(grader._grader_config)
     effective_column_mapping: Dict[str, str] = column_mapping or {}
     LOGGER.info(f"AOAI: Generating data source config with {len(effective_column_mapping)} column mapping(s)...")
-    data_source_config = _generate_data_source_config(data, effective_column_mapping)
+    if data_source_config == {}:
+        data_source_config = _generate_data_source_config(data, effective_column_mapping)
     LOGGER.info(f"AOAI: Data source config generated with schema type: {data_source_config.get('type')}")
 
     # Create eval group
     LOGGER.info(f"AOAI: Creating eval group with {len(grader_list)} testing criteria...")
+
+
+    # data_source_config = {
+    #     "type": "custom",
+    #     "item_schema": {
+    #         "type": "object",
+    #         "properties": {
+    #             "image_url": {
+    #                 "type": "string",
+    #                 "description": "The URL of the image to be evaluated."
+    #             },
+    #             "caption": {
+    #                 "type": "string",
+    #                 "description": "The caption describing the image."
+    #             }
+    #         },
+    #         "required": [
+    #             "image_url",
+    #             "caption"
+    #         ]
+    #     },
+    #     "include_sample_schema": True,
+    # }
+    # testing_criteria = [{
+    #     "type": "score_model",
+    #     "name": "Image to Text Grader",
+    #     "model": "gpt-4o-mini",
+    #     "input": [{
+    #         "role": "system",
+    #         "content": "You are an expert grader. Judge how well the model response {{sample.output_text}} describes the image as well as matches the caption {{item.caption}}. Output a score of 1 if its an excelent match with both. If it's somewhat compatible, output a score around 0.5. Otherwise, give a score of 0."
+    #     }, {
+    #         "role": "user",
+    #         "content": [{ 
+    #             "type": "input_text", 
+    #             "text": "Caption: {{ item.caption }}",
+    #         }, { 
+    #             "type": "input_image", 
+    #             "image_url": "{{ item.image_url }}",
+    #         }],
+    #     }],
+    #     "range": [
+    #         0,
+    #         1
+    #     ],
+    #     "pass_threshold": 0.5
+    # }]
+
+    if 'item_schema' in kwargs and 'properties' in kwargs['item_schema'] and 'required' in kwargs['item_schema']:
+        if 'item_schema' not in data_source_config:
+            data_source_config['item_schema'] = { 'type': 'object', 'properties': {}, 'required': [] }
+
+        for key in kwargs['item_schema']['properties']:
+            if key not in data_source_config['item_schema']['properties']:
+                data_source_config['item_schema']['properties'][key] = kwargs['item_schema']['properties'][key]
+                data_source_config['item_schema']['required'].append(key)
+
+    # data_source_config['item_schema']['properties']['image_url'] = { 'type': 'string' }
+    # data_source_config['item_schema']['properties']['caption'] = { 'type': 'string' }
+    # data_source_config['item_schema']['required'] = ['sample', 'image_url', 'caption']
+
+
     eval_group_info = client.evals.create(
         data_source_config=data_source_config, testing_criteria=grader_list, metadata={"is_foundry_eval": "true"}
+        # data_source_config=data_source_config, testing_criteria=testing_criteria, metadata={"is_foundry_eval": "true"}
     )
 
     LOGGER.info(f"AOAI: Eval group created with id {eval_group_info.id}. Creating eval run next...")
@@ -181,7 +255,7 @@ def _begin_single_aoai_evaluation(
 
     # Create eval run
     LOGGER.info(f"AOAI: Creating eval run '{run_name}' with {len(data)} data rows...")
-    eval_run_id = _begin_eval_run(client, eval_group_info.id, run_name, data, effective_column_mapping)
+    eval_run_id = _begin_eval_run(client, eval_group_info.id, run_name, data, effective_column_mapping, data_source)
     LOGGER.info(
         f"AOAI: Eval run created with id {eval_run_id}."
         + " Results will be retrieved after normal evaluation is complete..."
@@ -654,7 +728,10 @@ def _generate_data_source_config(input_data_df: pd.DataFrame, column_mapping: Di
         props = data_source_config["item_schema"]["properties"]
         req = data_source_config["item_schema"]["required"]
         for key in column_mapping.keys():
-            props[key] = {"type": "string"}
+            if key in input_data_df and len(input_data_df[key]) > 0 and isinstance(input_data_df[key].iloc[0], list):
+                props[key] = {"type": "array"}
+            else:
+                props[key] = {"type": "string"}
             req.append(key)
         LOGGER.info(f"AOAI: Flat schema generated with {len(props)} properties: {list(props.keys())}")
         return data_source_config
@@ -821,8 +898,11 @@ def _get_data_source(input_data_df: pd.DataFrame, column_mapping: Dict[str, str]
             # Safely fetch value
             val = row.get(df_col, None)
 
-            # Convert value to string to match schema's "type": "string" leaves.
-            str_val = _convert_value_to_string(val)
+            if isinstance(val, list):
+                str_val = val
+            else:
+                # Convert value to string to match schema's "type": "string" leaves.
+                str_val = _convert_value_to_string(val)
 
             # Insert into nested dict
             cursor = item_root
@@ -842,7 +922,10 @@ def _get_data_source(input_data_df: pd.DataFrame, column_mapping: Dict[str, str]
         for col_name in input_data_df.columns:
             if col_name not in processed_cols:
                 val = row.get(col_name, None)
-                str_val = _convert_value_to_string(val)
+                if isinstance(val, list):
+                    str_val = val
+                else:
+                    str_val = _convert_value_to_string(val)
                 item_root[col_name] = str_val
 
         content.append({WRAPPER_KEY: item_root})
@@ -863,6 +946,7 @@ def _begin_eval_run(
     run_name: str,
     input_data_df: pd.DataFrame,
     column_mapping: Dict[str, str],
+    data_source_params: Optional[Dict[str, Any]]=None,
 ) -> str:
     """
     Given an eval group id and a dataset file path, use the AOAI API to
@@ -884,6 +968,50 @@ def _begin_eval_run(
 
     LOGGER.info(f"AOAI: Creating eval run '{run_name}' for eval group {eval_group_id}...")
     data_source = _get_data_source(input_data_df, column_mapping)
+    
+    if data_source_params is not None:
+        data_source.update(data_source_params)
+
+
+    # data_source = {
+    #     "type": "completions",
+    #     "model": "gpt-4o-mini",
+    #     "sampling_params": {
+    #         "temperature": 0.8
+    #     },
+    #     "source": {
+    #         "type": "file_content",
+    #         "content": [{
+    #             "item": {
+    #                 "image_url": "http://lh6.ggpht.com/-IvRtNLNcG8o/TpFyrudaT6I/AAAAAAAAM6o/_11MuAAKalQ/IMG_3422.JPG?imgmax=800",
+    #                 "caption": "a very typical bus station",
+    #             },
+    #         }, {
+    #             "item": {
+    #                 "image_url": "http://78.media.tumblr.com/3b133294bdc7c7784b781b45eb9af7be/tumblr_nbirmjpEme1tkk0fco1_500.jpg",
+    #                 "caption": "sierra looked stunning in this top and this skirt while performing with person at their former university",
+    #             },
+    #         }],
+    #     },
+    #     "input_messages": {
+    #         "type": "template",
+    #         "template": [
+    #             {
+    #                 "role": "system",
+    #                 "content": "You are an assistant that analyzes images and provides captions that accurately describe the content of the image."
+    #             },
+    #             {
+    #                 "role": "user",
+    #                 "type": "message",
+    #                 "content": {
+    #                     "type": "input_image",
+    #                     "image_url": "{{ item.image_url }}",
+    #                     "detail": "auto"
+    #                 }
+    #             }
+    #         ]
+    #     }
+    # }
     eval_run = client.evals.runs.create(
         eval_id=eval_group_id,
         data_source=cast(Any, data_source),  # Cast for type checker: dynamic schema dict accepted by SDK at runtime
